@@ -116,14 +116,6 @@ def classify_pose(lms):
     if (arm_l_horizontal and hand_on_hip_r) or (arm_r_horizontal and hand_on_hip_l):
         return "Samurai Pose"
 
-    # # 6) Mantis: both hands near face (we’ll ignore legs for now as you asked)
-    # if all(map(ok,(lw,rw,nose,ls,rs))):
-    #     # hands_near_face = near(lw, nose, s, 0.6) and near(rw, nose, s, 0.6) and dist(lw, rw) < 0.6*s
-    #     hands_near_face = near(lw, nose, s, 0.6) or near(rw, nose, s, 0.6) and dist(lw, rw) < 0.6*s
-    #     if hands_near_face:
-    #         return "Mantis Pose"
-    #
-    # return ""
     # 6) Stop: one hand up near face (like saying "stop")
     if all(map(ok, (lw, rw, nose, ls, rs, leye, reye))):
         head_top_y = min(nose.y, leye.y, reye.y)  # visually higher = smaller y
