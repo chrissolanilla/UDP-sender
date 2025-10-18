@@ -65,6 +65,9 @@ def classify_pose(lms):
     ls, rs = pt(lms,"LEFT_SHOULDER"), pt(lms,"RIGHT_SHOULDER")
     lh, rh = pt(lms,"LEFT_HIP"), pt(lms,"RIGHT_HIP")
     lk, rk = pt(lms,"LEFT_KNEE"), pt(lms,"RIGHT_KNEE")
+    leye = pt(lms, "LEFT_EYE")
+    reye = pt(lms, "RIGHT_EYE")
+
     nose   = pt(lms,"NOSE")
 
     ok = vis_ok
@@ -113,13 +116,39 @@ def classify_pose(lms):
     if (arm_l_horizontal and hand_on_hip_r) or (arm_r_horizontal and hand_on_hip_l):
         return "Samurai Pose"
 
-    # 6) Mantis: both hands near face (we’ll ignore legs for now as you asked)
-    if all(map(ok,(lw,rw,nose,ls,rs))):
-        hands_near_face = near(lw, nose, s, 0.6) and near(rw, nose, s, 0.6) and dist(lw, rw) < 0.6*s
-        if hands_near_face:
-            return "Mantis Pose"
+    # # 6) Mantis: both hands near face (we’ll ignore legs for now as you asked)
+    # if all(map(ok,(lw,rw,nose,ls,rs))):
+    #     # hands_near_face = near(lw, nose, s, 0.6) and near(rw, nose, s, 0.6) and dist(lw, rw) < 0.6*s
+    #     hands_near_face = near(lw, nose, s, 0.6) or near(rw, nose, s, 0.6) and dist(lw, rw) < 0.6*s
+    #     if hands_near_face:
+    #         return "Mantis Pose"
+    #
+    # return ""
+    # 6) Stop: one hand up near face (like saying "stop")
+    if all(map(ok, (lw, rw, nose, ls, rs, leye, reye))):
+        head_top_y = min(nose.y, leye.y, reye.y)  # visually higher = smaller y
 
-    return ""
+        def is_stop(wrist, elbow, shoulder):
+            # must be near the face (tighter), above its shoulder, but NOT way above the head
+            close_to_face   = near(wrist, nose, s, 0.45)
+            above_shoulder  = wrist.y < shoulder.y - 0.02 * s
+            not_too_high    = wrist.y >= head_top_y - 0.12 * s   # keep within face band
+            elbow_bentish   = angle(shoulder, elbow, wrist) < 150  # avoid straight-up arm (Point Up)
+            # optional: ensure the hand is "in front" of the elbow (toward camera).
+            # Mediapipe Pose z is camera-depth; typically "more negative" is closer to camera.
+            forwardish      = (wrist.z < elbow.z - 0.03) if hasattr(wrist, "z") and hasattr(elbow, "z") else True
+
+            # optional: keep it near face laterally too (reduce side triggers)
+            lateral_ok      = abs(wrist.x - nose.x) <= 0.30 * s
+
+            return close_to_face and above_shoulder and not_too_high and elbow_bentish and forwardish and lateral_ok
+
+        left_stop  = all(map(ok, (lw, le, ls))) and is_stop(lw, le, ls)
+        right_stop = all(map(ok, (rw, re, rs))) and is_stop(rw, re, rs)
+
+        if left_stop or right_stop:
+            return "Stop Pose"
+
 
 # ---------- drawing ----------
 def draw_and_label(frame_bgr, results, label, fps):
@@ -131,7 +160,7 @@ def draw_and_label(frame_bgr, results, label, fps):
         )
         frame_bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     cv2.putText(frame_bgr, f"FPS {fps:4.1f}", (8,24), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-    cv2.putText(frame_bgr, f"Pose: {label or '(none)'}", (8,52), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50,220,50), 2)
+    cv2.putText(frame_bgr, f"Pose: {label or '(none)'}", (8,52), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,225,255), 2)
     return frame_bgr
 
 # ---------- main ----------
