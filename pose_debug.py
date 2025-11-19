@@ -4,6 +4,16 @@ from collections import deque, Counter
 
 # If Wayland/Qt gives blank windows, uncomment:
 # os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+print("cv2 module path:", cv2.__file__)
+print()
+
+# Shortened build info (full is huge)
+info = cv2.getBuildInformation()
+print("=== OpenCV Build Information (Python) ===")
+for line in info.splitlines():
+    if "Video I/O:" in line or "FFMPEG:" in line or "GStreamer" in line or "V4L" in line:
+        print(line)
+print("=========================================")
 
 mp_pose  = mp.solutions.pose
 mp_draw  = mp.solutions.drawing_utils
